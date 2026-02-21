@@ -1,0 +1,5 @@
+{
+  "name": "ChromeOS File Explorer",
+  "description": "A high-fidelity React-based file manager inspired by the ChromeOS 'Files' app, featuring directory navigation, smart search powered by Gemini, and Material Design aesthetics.",
+  "requestFramePermissions": []
+}
