@@ -25,16 +25,9 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [aiResults, setAiResults] = useState<string[] | null>(null);
   
-  // Auth States - Gatekeeping the App
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [githubUsers, setGithubUsers] = useState<string[]>(['jocall3']);
-  const [driveToken, setDriveToken] = useState<string | null>(null);
+  const [driveToken, setDriveToken] = useState<string | null>("demo-token");
 
   // UI Panels
   const [isBrainOpen, setIsBrainOpen] = useState(false);
@@ -57,12 +50,11 @@ export default function App() {
     return files.find(f => f.id === selectedIds[0]) || null;
   }, [selectedIds, files]);
 
-  // Initial Data Load (Local/GitHub only before Google Login)
+  // Initial Data Load
   useEffect(() => {
-    if (isLoggedIn) {
-        githubUsers.forEach(user => syncUserRepos(user));
-    }
-  }, [isLoggedIn]);
+    githubUsers.forEach(user => syncUserRepos(user));
+    syncDriveRoot("demo-token");
+  }, []);
 
   const filteredFiles = useMemo(() => {
     let base = files;
@@ -79,40 +71,7 @@ export default function App() {
     return base;
   }, [files, currentFolderId, searchQuery, aiResults, isSearching, viewMode, currentNav]);
 
-  // Google Login Mandatory Flow
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (!loginEmail || !loginPassword) return;
-    
-    setIsAuthenticating(true);
-    // Real-world delay simulation for SSL handshake/Verification
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockToken = "demo-token";
-    setDriveToken(mockToken);
-    setIsLoggedIn(true);
-    
-    try {
-      await syncDriveRoot(mockToken);
-      setCurrentNav('drive');
-      setPath([]);
-    } catch (err) {
-      console.error("Cloud initial sync error", err);
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
 
-  const handleLogout = () => {
-    setDriveToken(null);
-    setIsLoggedIn(false);
-    setFiles([]);
-    setCurrentNav('root');
-    setPath([]);
-    setLoginEmail('');
-    setLoginPassword('');
-  };
 
   const syncDriveRoot = async (token: string) => {
     setIsLoadingContent(true);
@@ -289,81 +248,7 @@ export default function App() {
     });
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="h-screen w-full bg-[#f1f3f4] flex flex-col items-center justify-center font-sans overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 z-0 opacity-40">
-           <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-200/50 rounded-full blur-[120px] animate-pulse"></div>
-           <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-200/50 rounded-full blur-[120px] animate-pulse" style={{animationDelay: '1s'}}></div>
-        </div>
 
-        <div className="bg-white w-[480px] rounded-[32px] shadow-[0_24px_80px_rgba(0,0,0,0.1)] border border-gray-100 p-12 z-10 flex flex-col items-center transition-all animate-in zoom-in-95 fade-in duration-700">
-           <div className="mb-10 text-center">
-              <div className="w-20 h-20 bg-indigo-600 rounded-[28px] flex items-center justify-center text-white shadow-xl rotate-3 mb-8 mx-auto hover:rotate-0 transition-transform">
-                <HardDrive size={40} />
-              </div>
-              <h1 className="text-4xl font-black tracking-tighter text-gray-900 mb-2">Google Login</h1>
-              <p className="text-gray-400 font-medium text-sm">Sync your Drive workspace with OMNI Intelligence.</p>
-           </div>
-
-           <form onSubmit={handleLoginSubmit} className="w-full space-y-6">
-              <div className="space-y-4">
-                <div className="relative group">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={20}/>
-                  <input 
-                    type="email" 
-                    required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="Email or phone"
-                    className="w-full h-16 bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 font-bold text-gray-700 placeholder:text-gray-400 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-inner"
-                  />
-                </div>
-                <div className="relative group">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={20}/>
-                  <input 
-                    type="password" 
-                    required
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full h-16 bg-gray-50 border-2 border-transparent rounded-2xl pl-14 pr-6 font-bold text-gray-700 placeholder:text-gray-400 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-inner"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center px-1">
-                 <button type="button" className="text-indigo-600 text-xs font-black uppercase tracking-widest hover:underline">Forgot email?</button>
-                 <button type="button" className="text-indigo-600 text-xs font-black uppercase tracking-widest hover:underline">Create account</button>
-              </div>
-
-              <button 
-                type="submit"
-                disabled={isAuthenticating}
-                className="w-full h-20 bg-indigo-600 text-white rounded-[24px] font-black text-lg uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-4 disabled:opacity-70 disabled:cursor-not-allowed mt-4"
-              >
-                {isAuthenticating ? (
-                  <><Loader2 className="animate-spin" size={28} /> Synchronizing...</>
-                ) : (
-                  <><CheckCircle2 size={24} /> Next</>
-                )}
-              </button>
-           </form>
-
-           <div className="mt-12 flex items-center gap-3 text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">
-              <Shield size={12}/> Secure Identity Exchange v4.2
-           </div>
-        </div>
-
-        <div className="fixed bottom-10 flex gap-10 text-[11px] font-black text-gray-400 uppercase tracking-widest">
-           <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-           <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
-           <a href="#" className="hover:text-gray-900 transition-colors">Help</a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen w-full bg-[#f8f9fa] select-none overflow-hidden relative font-sans text-[#3c4043]">
@@ -435,12 +320,12 @@ export default function App() {
                    <User size={18}/>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-900 truncate">{loginEmail.split('@')[0] || 'Cloud User'}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-900 truncate">OMNI User</div>
                   <div className="text-[9px] font-bold text-emerald-500 flex items-center gap-1">
-                    <CheckCircle2 size={8}/> Verified Session
+                    <CheckCircle2 size={8}/> Dynamic Session
                   </div>
                 </div>
-                <button onClick={handleLogout} className="p-2 text-gray-300 hover:text-red-500 transition-colors" title="Logout"><CloudOff size={14}/></button>
+                <div className="p-2 text-gray-300 hover:text-indigo-500 transition-colors" title="Settings"><Palette size={14}/></div>
              </div>
         </div>
       </aside>
